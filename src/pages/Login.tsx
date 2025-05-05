@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const Login = () => {
   const [server, setServer] = useState('');
@@ -15,6 +17,7 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [networkStatus, setNetworkStatus] = useState(navigator.onLine);
   
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -23,17 +26,49 @@ const Login = () => {
     if (isAuthenticated) {
       navigate('/');
     }
+    
+    // Add network status listener
+    const handleOnline = () => setNetworkStatus(true);
+    const handleOffline = () => setNetworkStatus(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+    
+    // Check if we're online
+    if (!networkStatus) {
+      setError('İnternet bağlantınız yok. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.');
+      return;
+    }
+    
+    // Basic validation
+    if (!server.trim()) {
+      setError('Lütfen bir sunucu adresi girin.');
+      return;
+    }
+    
+    if (!username.trim() || !password.trim()) {
+      setError('Kullanıcı adı ve şifre gereklidir.');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
       await login(server, username, password, rememberMe);
-    } catch (error) {
-      setError('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
+    } catch (error: any) {
+      console.error(error);
+      // The toast is already shown in the AuthContext, but we'll set the form error too
+      setError(error.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
     } finally {
       setIsLoading(false);
     }
@@ -49,10 +84,19 @@ const Login = () => {
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 p-3 bg-red-900/50 border border-red-800 text-white rounded-md">
-                {error}
-              </div>
+              <Alert variant="destructive" className="mb-4 bg-red-900/50 border border-red-800 text-white">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
+            
+            {!networkStatus && (
+              <Alert variant="warning" className="mb-4 bg-yellow-900/50 border border-yellow-800 text-white">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>İnternet bağlantınız yok! Bağlantınızı kontrol edin.</AlertDescription>
+              </Alert>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="server" className="text-gray-200">Sunucu URL/DNS</Label>
@@ -64,6 +108,9 @@ const Login = () => {
                   className="bg-netflix-mediumGray border-gray-700 text-white"
                   required
                 />
+                <p className="text-xs text-gray-400">
+                  Sunucu adresi port içerebilir: iptv.sunucu.com:8080
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-gray-200">Kullanıcı Adı</Label>
@@ -100,7 +147,7 @@ const Login = () => {
               </div>
               <Button 
                 type="submit" 
-                disabled={isLoading} 
+                disabled={isLoading || !networkStatus} 
                 className="w-full bg-netflix-red hover:bg-red-700 text-white"
                 size="lg"
               >

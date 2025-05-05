@@ -1,5 +1,4 @@
-
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 export interface UserInfo {
   username: string;
@@ -180,11 +179,33 @@ export class XtreamApi {
     url.searchParams.append('password', password);
 
     try {
-      const response = await axios.get<XtreamAuthResponse>(url.toString());
+      // Set a timeout for the request to avoid long waiting times
+      const response = await axios.get<XtreamAuthResponse>(url.toString(), {
+        timeout: 15000, // 15 seconds timeout
+      });
       this.saveCredentials(baseUrl, username, password);
       return response.data;
     } catch (error) {
       console.error('Authentication error:', error);
+      
+      // Enhanced error handling with more specific error messages
+      const axiosError = error as AxiosError;
+      if (axiosError.code === 'ECONNABORTED') {
+        throw new Error('Connection timeout. The server took too long to respond.');
+      } else if (axiosError.response) {
+        if (axiosError.response.status === 401) {
+          throw new Error('Invalid username or password');
+        } else {
+          throw new Error(`Server error: ${axiosError.response.status}`);
+        }
+      } else if (axiosError.request) {
+        if (serverUrl.includes(' ') || !serverUrl.match(/^[a-zA-Z0-9.-]+(\.[a-zA-Z0-9-]+)*(:[0-9]+)?(\/[^/]*)?$/)) {
+          throw new Error('Invalid server URL format. Please check and try again.');
+        } else {
+          throw new Error('Failed to connect to the server. Please check the server address and your internet connection.');
+        }
+      }
+      
       throw new Error('Failed to authenticate with the server');
     }
   }

@@ -77,11 +77,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         navigate('/');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
+      let errorMessage = "Lütfen giriş bilgilerinizi kontrol edin.";
+      
+      // Provide more specific error messages based on error type
+      if (error.message === 'Network Error') {
+        errorMessage = "Sunucuya bağlanılamadı. Lütfen sunucu adresini ve internet bağlantınızı kontrol edin.";
+      } else if (error.response?.status === 401) {
+        errorMessage = "Kullanıcı adı veya şifre hatalı.";
+      } else if (error.code === 'ERR_CONNECTION_TIMED_OUT') {
+        errorMessage = "Sunucu bağlantısı zaman aşımına uğradı. Lütfen daha sonra tekrar deneyin.";
+      }
+      
       toast({
         title: "Giriş başarısız",
-        description: "Lütfen giriş bilgilerinizi kontrol edin.",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;
