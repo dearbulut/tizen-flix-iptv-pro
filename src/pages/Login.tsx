@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
@@ -91,7 +90,7 @@ const Login = () => {
             )}
             
             {!networkStatus && (
-              <Alert variant="warning" className="mb-4 bg-yellow-900/50 border border-yellow-800 text-white">
+              <Alert variant="destructive" className="mb-4 bg-yellow-900/50 border border-yellow-800 text-white">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>İnternet bağlantınız yok! Bağlantınızı kontrol edin.</AlertDescription>
               </Alert>
