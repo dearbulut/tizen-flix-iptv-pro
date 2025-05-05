@@ -41,9 +41,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
         } catch (error) {
           console.error('Auto-login failed:', error);
-          localStorage.removeItem('xtream_server');
-          localStorage.removeItem('xtream_username');
-          localStorage.removeItem('xtream_password');
+          // Don't remove credentials for timeout errors - server might be temporarily unavailable
+          if (!(error instanceof Error && (error.message.includes('zaman aşımı') || error.message.includes('timeout')))) {
+            localStorage.removeItem('xtream_server');
+            localStorage.removeItem('xtream_username');
+            localStorage.removeItem('xtream_password');
+          }
         } finally {
           setIsLoading(false);
         }
@@ -58,7 +61,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (server: string, username: string, password: string, rememberMe: boolean) => {
     try {
       setIsLoading(true);
-      const response = await xtreamApi.authenticate(server, username, password);
+      // Use retry mechanism in authenticate method
+      const response = await xtreamApi.authenticate(server, username, password, 2); // Try up to 3 times (initial + 2 retries)
       
       if (response.user_info) {
         setUserInfo(response.user_info);
@@ -82,7 +86,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       let errorMessage = "Lütfen giriş bilgilerinizi kontrol edin.";
       
       // Provide more specific error messages based on error type
-      if (error.message === 'Network Error') {
+      if (error.message.includes('zaman aşımı') || error.message.includes('timeout') || error.code === 'ECONNABORTED') {
+        errorMessage = "Bağlantı zaman aşımına uğradı. Sunucu yanıt vermiyor olabilir veya geçici bir ağ sorunu olabilir.";
+      } else if (error.message === 'Network Error') {
         errorMessage = "Sunucuya bağlanılamadı. Lütfen sunucu adresini ve internet bağlantınızı kontrol edin.";
       } else if (error.response?.status === 401) {
         errorMessage = "Kullanıcı adı veya şifre hatalı.";

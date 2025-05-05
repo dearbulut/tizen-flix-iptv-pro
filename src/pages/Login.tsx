@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, WifiOff, Clock } from "lucide-react";
 
 const Login = () => {
   const [server, setServer] = useState('');
@@ -17,6 +18,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [networkStatus, setNetworkStatus] = useState(navigator.onLine);
+  const [connectionTimeout, setConnectionTimeout] = useState(false);
   
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -42,6 +44,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+    setConnectionTimeout(false);
     
     // Check if we're online
     if (!networkStatus) {
@@ -66,8 +69,14 @@ const Login = () => {
       await login(server, username, password, rememberMe);
     } catch (error: any) {
       console.error(error);
-      // The toast is already shown in the AuthContext, but we'll set the form error too
-      setError(error.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
+      
+      // Check for timeout error
+      if (error.message && (error.message.includes('zaman aşımı') || error.message.includes('timeout'))) {
+        setConnectionTimeout(true);
+        setError(error.message || 'Bağlantı zaman aşımı. Sunucu yanıt vermedi.');
+      } else {
+        setError(error.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -89,9 +98,18 @@ const Login = () => {
               </Alert>
             )}
             
+            {connectionTimeout && (
+              <Alert variant="destructive" className="mb-4 bg-orange-900/50 border border-orange-800 text-white">
+                <Clock className="h-4 w-4" />
+                <AlertDescription>
+                  Bağlantı zaman aşımına uğradı. Sunucu yanıt vermiyor olabilir veya geçici bir ağ sorunu olabilir. Lütfen daha sonra tekrar deneyin.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {!networkStatus && (
               <Alert variant="destructive" className="mb-4 bg-yellow-900/50 border border-yellow-800 text-white">
-                <AlertCircle className="h-4 w-4" />
+                <WifiOff className="h-4 w-4" />
                 <AlertDescription>İnternet bağlantınız yok! Bağlantınızı kontrol edin.</AlertDescription>
               </Alert>
             )}

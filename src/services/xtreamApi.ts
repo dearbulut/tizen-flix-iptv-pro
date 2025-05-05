@@ -168,7 +168,7 @@ export class XtreamApi {
     return url.toString();
   }
 
-  async authenticate(serverUrl: string, username: string, password: string): Promise<XtreamAuthResponse> {
+  async authenticate(serverUrl: string, username: string, password: string, retryCount = 1): Promise<XtreamAuthResponse> {
     // Ensure the URL has http or https prefix
     const baseUrl = serverUrl.startsWith('http') 
       ? serverUrl 
@@ -181,7 +181,7 @@ export class XtreamApi {
     try {
       // Set a timeout for the request to avoid long waiting times
       const response = await axios.get<XtreamAuthResponse>(url.toString(), {
-        timeout: 15000, // 15 seconds timeout
+        timeout: 10000, // Reduced to 10 seconds timeout
       });
       this.saveCredentials(baseUrl, username, password);
       return response.data;
@@ -190,23 +190,31 @@ export class XtreamApi {
       
       // Enhanced error handling with more specific error messages
       const axiosError = error as AxiosError;
-      if (axiosError.code === 'ECONNABORTED') {
-        throw new Error('Connection timeout. The server took too long to respond.');
+      
+      if (axiosError.code === 'ECONNABORTED' || axiosError.message.includes('timeout')) {
+        if (retryCount > 0) {
+          console.log(`Retry attempt ${retryCount} for server ${serverUrl}`);
+          // Wait for 1 second before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Retry with one less retry count
+          return this.authenticate(serverUrl, username, password, retryCount - 1);
+        }
+        throw new Error('Bağlantı zaman aşımı. Sunucu yanıt vermedi. Lütfen sunucu adresini kontrol edin veya daha sonra tekrar deneyin.');
       } else if (axiosError.response) {
         if (axiosError.response.status === 401) {
-          throw new Error('Invalid username or password');
+          throw new Error('Geçersiz kullanıcı adı veya şifre');
         } else {
-          throw new Error(`Server error: ${axiosError.response.status}`);
+          throw new Error(`Sunucu hatası: ${axiosError.response.status}`);
         }
       } else if (axiosError.request) {
         if (serverUrl.includes(' ') || !serverUrl.match(/^[a-zA-Z0-9.-]+(\.[a-zA-Z0-9-]+)*(:[0-9]+)?(\/[^/]*)?$/)) {
-          throw new Error('Invalid server URL format. Please check and try again.');
+          throw new Error('Geçersiz sunucu URL formatı. Lütfen kontrol edin ve tekrar deneyin.');
         } else {
-          throw new Error('Failed to connect to the server. Please check the server address and your internet connection.');
+          throw new Error('Sunucuya bağlanılamadı. Lütfen sunucu adresini ve internet bağlantınızı kontrol edin.');
         }
       }
       
-      throw new Error('Failed to authenticate with the server');
+      throw new Error('Sunucu ile kimlik doğrulama başarısız oldu. Lütfen daha sonra tekrar deneyin.');
     }
   }
 
