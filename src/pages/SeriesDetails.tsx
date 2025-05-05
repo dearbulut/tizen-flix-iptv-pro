@@ -28,11 +28,33 @@ interface Season {
   episodes: Episode[];
 }
 
+// Extended Series type to accommodate optional properties
+interface ExtendedSeries extends Series {
+  year?: string;
+}
+
+// Extended SeriesInfo to accommodate optional properties
+interface ExtendedSeriesInfo extends SeriesInfo {
+  info: {
+    name: string;
+    cover: string;
+    plot: string;
+    cast: string;
+    director: string;
+    genre: string;
+    release_date: string;
+    last_modified: string;
+    rating: string;
+    rating_5based: number;
+    cover_big?: string;
+  };
+}
+
 const SeriesDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [series, setSeries] = useState<Series | null>(null);
-  const [seriesInfo, setSeriesInfo] = useState<SeriesInfo | null>(null);
+  const [series, setSeries] = useState<ExtendedSeries | null>(null);
+  const [seriesInfo, setSeriesInfo] = useState<ExtendedSeriesInfo | null>(null);
   const [seasons, setSeasons] = useState<Record<string, Season>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,11 +72,11 @@ const SeriesDetails = () => {
         const foundSeries = allSeries.find(s => s.series_id === parseInt(id));
         
         if (foundSeries) {
-          setSeries(foundSeries);
+          setSeries(foundSeries as ExtendedSeries);
           
           // Get detailed series info with episodes
           const info = await xtreamApi.getSeriesInfo(parseInt(id));
-          setSeriesInfo(info);
+          setSeriesInfo(info as ExtendedSeriesInfo);
           
           // Organize episodes by season
           const seasonMap: Record<string, Season> = {};
@@ -131,6 +153,8 @@ const SeriesDetails = () => {
     );
   }
 
+  const coverImage = series.cover || (seriesInfo.info.cover_big || seriesInfo.info.cover) || '/placeholder.svg';
+
   return (
     <MainLayout>
       <div className="relative">
@@ -141,7 +165,7 @@ const SeriesDetails = () => {
           <div 
             className="w-full h-full bg-cover bg-center bg-no-repeat"
             style={{ 
-              backgroundImage: `url(${series.cover || seriesInfo.info.cover_big || '/placeholder.svg'})`
+              backgroundImage: `url(${coverImage})`
             }}
           ></div>
         </div>

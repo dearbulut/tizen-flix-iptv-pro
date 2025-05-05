@@ -101,8 +101,9 @@ const Movies = () => {
                     </div>
                     <div className="p-3">
                       <h3 className="text-sm font-medium text-white truncate">{movie.name}</h3>
-                      {movie.year && (
-                        <p className="text-xs text-gray-400">{movie.year}</p>
+                      {/* Make year property optional */}
+                      {(movie as any).year && (
+                        <p className="text-xs text-gray-400">{(movie as any).year}</p>
                       )}
                     </div>
                   </div>

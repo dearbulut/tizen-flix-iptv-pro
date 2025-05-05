@@ -8,6 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search as SearchIcon } from 'lucide-react';
 
+// Extended types to accommodate optional properties
+interface ExtendedMovie extends Movie {
+  year?: string;
+}
+
+interface ExtendedSeries extends Series {
+  year?: string;
+}
+
 const xtreamApi = new XtreamApi();
 
 const Search = () => {
@@ -16,12 +25,12 @@ const Search = () => {
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [activeTab, setActiveTab] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [series, setSeries] = useState<Series[]>([]);
+  const [movies, setMovies] = useState<ExtendedMovie[]>([]);
+  const [series, setSeries] = useState<ExtendedSeries[]>([]);
   const [channels, setChannels] = useState<Stream[]>([]);
   const [results, setResults] = useState<{
-    movies: Movie[];
-    series: Series[];
+    movies: ExtendedMovie[];
+    series: ExtendedSeries[];
     channels: Stream[];
   }>({
     movies: [],
@@ -39,8 +48,8 @@ const Search = () => {
           xtreamApi.getLiveStreams()
         ]);
         
-        setMovies(moviesData);
-        setSeries(seriesData);
+        setMovies(moviesData as ExtendedMovie[]);
+        setSeries(seriesData as ExtendedSeries[]);
         setChannels(channelsData);
         
         // If we have a search term from URL, perform search

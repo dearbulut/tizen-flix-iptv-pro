@@ -8,10 +8,20 @@ import { Play, Clock, Star, Calendar, Film } from 'lucide-react';
 
 const xtreamApi = new XtreamApi();
 
+// Extended Movie type to accommodate optional properties
+interface ExtendedMovie extends Movie {
+  year?: string;
+  duration?: string;
+  genre?: string;
+  plot?: string;
+  cast?: string;
+  director?: string;
+}
+
 const MovieDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [movie, setMovie] = useState<Movie | null>(null);
+  const [movie, setMovie] = useState<ExtendedMovie | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -28,7 +38,7 @@ const MovieDetails = () => {
         const foundMovie = allMovies.find(m => m.stream_id === parseInt(id));
         
         if (foundMovie) {
-          setMovie(foundMovie);
+          setMovie(foundMovie as ExtendedMovie);
         } else {
           throw new Error('Film bulunamadı');
         }

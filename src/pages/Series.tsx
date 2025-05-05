@@ -6,11 +6,16 @@ import { XtreamApi, Series as SeriesType } from '@/services/xtreamApi';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Extended Series type to accommodate optional properties
+interface ExtendedSeries extends SeriesType {
+  year?: string;
+}
+
 const xtreamApi = new XtreamApi();
 
 const Series = () => {
   const navigate = useNavigate();
-  const [seriesList, setSeriesList] = useState<SeriesType[]>([]);
+  const [seriesList, setSeriesList] = useState<ExtendedSeries[]>([]);
   const [categories, setCategories] = useState<{category_id: string; category_name: string}[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -35,7 +40,7 @@ const Series = () => {
         const seriesData = selectedCategory === "all" 
           ? await xtreamApi.getSeriesList() 
           : await xtreamApi.getSeriesList(selectedCategory);
-        setSeriesList(seriesData);
+        setSeriesList(seriesData as ExtendedSeries[]);
       } catch (error) {
         console.error('Error loading series:', error);
       } finally {
